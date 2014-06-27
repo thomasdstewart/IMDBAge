@@ -1,4 +1,4 @@
-/*  IMDBAge v2.11 - Greasemonkey script to add actors ages to IMDB pages
+/*  IMDBAge v2.12 - Greasemonkey script to add actors ages to IMDB pages
     Copyright (C) 2005-2014 Thomas Stewart <thomas@stewarts.org.uk>
 
     This program is free software: you can redistribute it and/or modify
@@ -14,22 +14,44 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Inspired in 2001, Created on 24/03/2005, Last Changed 25/06/2014
+Inspired in 2001, Created on 24/03/2005, Last Changed 26/06/2014
 Major bug fixes and improvements by Christopher J. Madsen
 
-This is a Greasemonkey user script, see http://www.greasespot.net/,
-https://addons.mozilla.org/firefox/addon/748 and http://userscripts.org/
+This is a Greasemonkey user script, see http://www.greasespot.net/ and
+https://addons.mozilla.org/firefox/addon/748
 
-New versions can be found either on my site, userscripts or greasyfork:
+New versions can be found either on my site, userscripts, greasyfork, or monkeyguts:
 http://www.stewarts.org.uk/tomsweb/IMDBAge
 http://userscripts.org/scripts/show/1060
 https://greasyfork.org/scripts/2798-imdbage
+https://monkeyguts.com/code.php?id=268
 
 This script adds the age and other various info onto IMDB pages. Specifically
 it adds some details to actor or actresses pages. It adds their age, their
 Tropical Zodiac Sign and their Chinese Zodiac Sign. As well as adding how many
 years ago and how old they were when they made the listed films. It also adds
 how long a go a film was made on a film page.
+
+This script is not abandoned, email thomas@stewarts.org.uk if it breaks.
+
+Changelog
+
+* 2.12 fixed adding ages to individual films and fixed old style
+* 2.11 fixed date grabbing again
+* 2.10 fixed date grabbing
+* 2.9 fixed adding year to title with many years
+* 2.8 old style working, fixed death day for new style, improved year grabbing
+* 2.7 added persistent config, changed namespace
+* 2.6 fixed star signs and added unicode symbols
+* 2.5 fixed imdb updates
+* 2.4 fixed imdb updates
+* 2.3 improved year grabbing
+* 2.2 updated imdb text info, formatting, added ages to individual films
+* 2.1 Major changes, added signs, added config
+* 1.6 Added improvement ideas from Christopher J. Madsen, Added first imdb text files search, Reformatting
+* 1.5 Removed function enclosing while script
+* 1.3 First public version
+
 
 Any of the above can be turned on or off by setting the following settings in about:config:
 greasemonkey.scriptvals.http://www.stewarts.org.uk/IMDBAge.doFilmAge
@@ -51,7 +73,7 @@ GM_setValue("doFilmAge",  doFilmAge)
 // ==UserScript==
 // @name        IMDBAge
 // @description Adds the age and other various info onto IMDB pages.
-// @version     2.11
+// @version     2.12
 // @namespace   http://www.stewarts.org.uk
 // @include     http://*imdb.com/name/*
 // @include     http://*imdb.com/title/*
@@ -206,31 +228,76 @@ output: whether they are dead of alive
 function getNameDates(born, died) {
 	var alive = false;
 	
-	/* find the birth date */
-        var nodes = document.evaluate(
-                "//time[contains(@itemprop,'birthDate')]",
-                document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-	
-	if (nodes.snapshotLength == 1) {
-		date = nodes.snapshotItem(0).getAttribute("datetime").split("-")
-		born.setFullYear(date[0]);
-		born.setMonth(date[1] - 1);
-		born.setDate(date[2]);
-		alive = true
-	}
+        /* new style */
+        if (newStyle()) {
+                /* find the birth date */
+                var nodes = document.evaluate(
+                        "//time[contains(@itemprop,'birthDate')]",
+                        document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+                        null);
+                
+                if (nodes.snapshotLength == 1) {
+                        date = nodes.snapshotItem(0).getAttribute("datetime").split("-")
+                        born.setFullYear(date[0]);
+                        born.setMonth(date[1] - 1);
+                        born.setDate(date[2]);
+                        alive = true
+                }
+                
+                /* find the death date */
+                var nodes = document.evaluate(
+                        "//time[contains(@itemprop,'deathDate')]",
+                        document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+                        null);
+                
+                if (nodes.snapshotLength == 1) {
+                        date=nodes.snapshotItem(0).getAttribute("datetime").split("-")
+                        died.setFullYear(date[0]);
+                        died.setMonth(date[1] - 1);
+                        died.setDate(date[2]);
+                        alive = false
+                }
+        /* old style */
+	} else {
+                /* find the birth date */
+                var nodes = document.evaluate(
+                        "//div[contains(@class,'info-content')]/a[contains(@href,'birth')]",
+                        document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+                        null);
+                if (nodes.snapshotLength == 3) {
+                        monthday = nodes.snapshotItem(0).getAttribute("href")
+                        month = monthday.substring(28, 30)
+                        day = monthday.substring(31, 33)
 
-	/* find the death date */
-        var nodes = document.evaluate(
-                "//time[contains(@itemprop,'deathDate')]",
-                document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-	
-	if (nodes.snapshotLength == 1) {
-		t=nodes.snapshotItem(0).getAttribute("datetime").split("-")
-		died.setFullYear(date[0]);
-		died.setMonth(date[1]);
-		died.setDate(date[2]);
-		alive = false
-	}
+                        year = nodes.snapshotItem(1).getAttribute("href")
+                        year = year.substring(24, 28);
+
+                        born.setFullYear(year);
+                        born.setMonth(month - 1);
+                        born.setDate(day);
+                        alive = true
+                }
+
+                /* find the death date */
+                var nodes = document.evaluate(
+                        "//div[contains(@class,'info-content')]/a[contains(@href,'death')]",
+                        document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+                        null);
+                if (nodes.snapshotLength == 2) {
+                        monthday = nodes.snapshotItem(0).getAttribute("href")
+                        month = monthday.substring(6, 8)
+                        day = monthday.substring(09,11)
+                        
+                        year = nodes.snapshotItem(1).getAttribute("href")
+                        year = year.substring(24, 28);
+
+                        died.setFullYear(year);
+                        died.setMonth(month - 1);
+                        died.setDate(day);
+                        alive = false
+                }
+        }
+
         //alert("Born: " + born + "\nDied: " + died + "\nAlive: " + alive);
 	return alive;
 }
@@ -242,8 +309,7 @@ returns: year of title
 function getTitleDates() {
         var nodes = document.evaluate(
                 /* old style and new style */
-                /* "//a[contains(@href,'year')]|//span[contains(@class,'nobr')]", */
-                "//*[@class='header']//span[contains(@class,'nobr')]",
+                "//div[contains(@id,'tn15title')]//a[contains(@href,'year')]|//*[@class='header']//span[contains(@class,'nobr')]",
                 document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
         if (nodes.snapshotLength != 1) {
@@ -324,7 +390,7 @@ function addAge(alive, born, died) {
         } else {
                 node = nodes.snapshotItem(1);
         
-                //only add death age on old layout, as new layouw has it!
+                //only add death age on old layout, as new layout has it!
                 if (!newStyle()) {
                         node.parentNode.insertBefore(container, 
                                 node.nextSibling);
@@ -350,7 +416,7 @@ function addAges(born) {
                 if (newStyle()) {
                         yearindex = node.innerHTML.search("[1-2][0-9]{3}")
                         //if we don't find a year, continue with for loop
-                        if (yearindex) {
+                        if (yearindex < 0) {
                                 continue;
                         }
                 } else { 
@@ -359,6 +425,7 @@ function addAges(born) {
                 }
                 var filmborn = node.innerHTML.substring(yearindex,
                         yearindex + 4);
+                //alert(filmborn);
 
                 //calculate ages
                 var filmage = new Date().getFullYear() - filmborn;
@@ -442,8 +509,7 @@ function addFilmAge(filmAge) {
         /* find place to stick the info */
         var nodes = document.evaluate(
                 /* old style and new style */
-                /* "//a[contains(@href,'year')]|//span[contains(@class,'nobr')]", */
-                "//*[@class='header']//span[contains(@class,'nobr')]",
+                "//div[contains(@id,'tn15title')]//a[contains(@href,'year')]|//*[@class='header']//span[contains(@class,'nobr')]",
                 document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
         /* create new span with formatting to match */
