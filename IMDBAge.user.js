@@ -1,24 +1,42 @@
-/* IMDBAge - 2.1
-Created 24/03/2005, Last Changed 14/09/2005
-Copyright (c) 2005, Released under the GPL http://www.gnu.org/copyleft/gpl.html
-Created by Thomas Stewart, thomas@stewarts.org.uk
+/*  IMDBAge v2.2 - Greasemonkey script to add actors ages to IMDB pages
+    Copyright (C) 2005-2007 Thomas Stewart <thomas@stewarts.org.uk>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Insipred in 2001, Created on 24/03/2005, Last Changed 21/08/2007
 Major bug fixes and improvments by Christopher J. Madsen
 
-This is a Greasemonkey user script, see http://greasemonkey.mozdev.org/
+This is a Greasemonkey user script, see http://www.greasespot.net/ and
+http://userscripts.org/
 
-This script add the age of an actor or actress, their Tropical Zodiac Sign and
-their Chinese Zodiac Sign on their IMDB page. It also adds how long ago the
-film was made.
+This script adds the age of an actor or actress, their Tropical Zodiac Sign and
+their Chinese Zodiac Sign on their IMDB page. It also adds how many years ago
+and how old they were when they made the listed films. It also how long ago
+the films was made.
 
-Any three of the above can be turned on or off by commenting or uncommenting 
-any of the following variables below: doAge, doSigns or doFilmAge. Edit this script once its installed comment or uncomment as nessesary. */
+Any of the above can be turned on or off by commenting or uncommenting any of
+the following variables below. Edit this script once it's installed comment and
+uncomment as nessesary. */
 
-var doAge = true;
-//var doAge = false;
-var doSigns = true;
-//var doSigns = false;
-var doFilmAge = true;
-//var doFilmAge = false;
+var doNameAge  = true;
+var doNameAges = true;
+var doSigns    = true;
+var doFilmAge  = true;
+//var doNameAge  = false;
+//var doNameAges = false;
+//var doSigns    = false;
+//var doFilmAge  = false;
 
 // ==UserScript==
 // @name          IMDBAge
@@ -29,7 +47,7 @@ var doFilmAge = true;
 // ==/UserScript==
 
 /*
-Test Cases: (In full for completness)
+Test Cases: (In full for completeness)
 Born 18C -> Died 18C    http://us.imdb.com/name/nm1038177/ (Laurence Sterne)
 Born 18C -> Died 19C    http://us.imdb.com/name/nm0308075/ (Almeida Garrett)
 Born 18C -> Died 20C    None
@@ -45,45 +63,45 @@ Born 20C -> Died 20C    http://us.imdb.com/name/nm0001006/ (John Candy)
 Born 20C -> Died 21C    http://us.imdb.com/name/nm0670239/ (John Peel)
 Born 20C -> Alive       http://us.imdb.com/name/nm0088127/ (Alexis Bledel)
 
-Born 21C -> Died 21C    None
+Born 21C -> Died 21C    http://us.imdb.com/name/nm2548643/ (Tabea Block)
 Born 21C -> Alive       http://us.imdb.com/name/nm1468628/ (Ben Want)
 
-Born 31 Dec 1969        http://us.imdb.com/name/nm1701067/ (Claudia Nero)
+Born 31 Dec 1969        http://us.imdb.com/name/nm1009503/ (Taylor McCall)
 Died 31 Dec 1969        http://us.imdb.com/name/nm0862239/ (Carol Thurston)
-Born  1 Jan 1970        http://us.imdb.com/name/nm0467846/ (Maka Kotto)
+Born  1 Jan 1970        http://us.imdb.com/name/nm0231191/ (Fiona Dolman)
 Died  1 Jan 1970        http://us.imdb.com/name/nm0902025/ (Eduard von Borsody)
 
 month(s) http://us.imdb.com/OnThisDay?day=1&month={this month - 1}
 year(y)  http://us.imdb.com/BornInYear?{this year - 1}
 no month or day info http://us.imdb.com/name/nm1289046/
 
-This was the method I used to find some of the people above, eeeeu!
-(If you are crasy enought to run this, expect it to take ages)
+This was the method I used to find some of the people above, eeeeu! 
+(If you are crasy enought to run this, expect it to take ages. It takes 30min on a Intel Core Duo 2 CPU 6400 @ 2.13GHz.)
 (ftp://ftp.fu-berlin.de/pub/misc/movies/database)
 for c in 17 18 19 20; do
-        $( cat /usr/local/imdbdata/biographies.list.gz | gunzip -c | egrep "^NM: |^DB: |^DD: " | while read line; do echo -n "$line "; done | sed 's/NM: /\nNM: /g' | grep "$c[0-9][0-9]" | while read line; do if [ `echo $line | awk -F: '{print $3}' | grep "$c[0-9][0-9]" | wc -l | awk '{print $1}'` -eq 1 ]; then echo $line; fi; done > b.$c ) &
-        $( cat /usr/local/imdbdata/biographies.list.gz | gunzip -c | egrep "^NM: |^DB: |^DD: " | while read line; do echo -n "$line "; done | sed 's/NM: /\nNM: /g' | grep "$c[0-9][0-9]" | while read line; do if [ `echo $line | awk -F: '{print $4}' | grep "$c[0-9][0-9]" | wc -l | awk '{print $1}'` -eq 1 ]; then echo $line; fi; done > d.$c ) &
+        $( cat biographies.list.gz | gunzip -c | egrep "^NM: |^DB: |^DD: " | while read line; do echo -n "$line "; done | sed 's/NM: /\nNM: /g' | grep "$c[0-9][0-9]" | while read line; do if [ `echo $line | awk -F: '{print $3}' | grep "$c[0-9][0-9]" | wc -l | awk '{print $1}'` -eq 1 ]; then echo $line; fi; done > b.$c ) &
+        $( cat biographies.list.gz | gunzip -c | egrep "^NM: |^DB: |^DD: " | while read line; do echo -n "$line "; done | sed 's/NM: /\nNM: /g' | grep "$c[0-9][0-9]" | while read line; do if [ `echo $line | awk -F: '{print $4}' | grep "$c[0-9][0-9]" | wc -l | awk '{print $1}'` -eq 1 ]; then echo $line; fi; done > d.$c ) &
 done
 cat b.17 d.17 | sort | uniq -d
 {list of people born and died in 18C}
-$ wc -l b.17 d.17 b.18 d.18 b.19 d.19 b.20 d.20 all
-     196 b.17
-      81 d.17
-   20563 b.18
-     488 d.18
-  158992 b.19
-   47781 d.19
-    1045 b.20
-    8549 d.20
-  347549 all
+$ wc -l b.17 d.17 b.18 d.18 b.19 d.19 b.20 d.20 
+     209 b.17
+      83 d.17
+   23700 b.18
+     537 d.18
+  219135 b.19
+   54588 d.19
+    1701 b.20
+   14066 d.20
+  314019 total
 $
 */
 
 /*
-TODO: inline png's of the signs
-TODO: change film age to say "this year" or "in 1 year" or "in 2 years"
-TODO: add ages to induvidual films for name page
-TODO: add ages to individual ages of actors to a film page
+TODO: inline png's of the signs, wp has some fre svg's http://en.wikipedia.org/wiki/Signs_of_the_Zodiac#Table_of_constellations_vs._zodiac_signs
+TODO: add ages to individual ages of actors to a film page, very hard, http req for each one, and then a xpath on the whole result
+TODO: adjust for logged in or logged off page, fix film ages on name page for old layout
+TODO: fix year grabbing code to handle year ranges eg Gilmore Girls 2000-2007
 */
 
 /*
@@ -218,7 +236,7 @@ function getNameDates(born, died) {
                         alive = false;
                 }
         }
-        //alert("Born: " + born + "\nDied: " + died);
+        //alert("Born: " + born + "\nDied: " + died + "\nAlive: " + alive);
         return alive;
 }
 
@@ -284,11 +302,16 @@ function addAge(alive, born, died) {
                 null);
 
         /* only count months if we found month & day info */
-        var container = document.createTextNode(" (Age: " +
-                years + " year" + (years == 1 ? '' : 's') +
-                (justyear ? ", " + 
-                        months + " month" + (months == 1 ? '' : 's')
-                : '') +
+        var container = document.createTextNode(
+                        " (Age: " + 
+                        years + 
+                        " year" +
+                        (years == 1 ? '' : 's') +
+                                (!justyear ? ", " + 
+                                months + 
+                                " month" +
+                                (months == 1 ? '' : 's')
+                                : '') +
                 ")");
 
         /* loop over all dates */
@@ -301,13 +324,56 @@ function addAge(alive, born, died) {
 }
 
 /*
+add age of film and the age of the actor when they were in the film
+input: full year or birth
+*/
+function addAges(born) {
+        //find all the films, this in includes things like producer and writer
+        var links = document.evaluate(
+                "//div[contains(@class,'filmo')]/ol/li",
+                document,
+                null,
+                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+                null);
+
+        //loop round each film
+        for (var i = 0; i < links.snapshotLength; i++) {
+                var link = links.snapshotItem(i);
+                var yearindex = link.innerHTML.indexOf('\)') - 4;
+                //extract the year of the film
+                var filmborn = link.innerHTML.substring(yearindex,
+                                yearindex + 4);
+
+                //calculate ages
+                var filmage = new Date().getFullYear() - filmborn;
+                var age = filmborn - born;
+
+                //get them in a nice format
+                var agetxt = new String(
+                        filmage + " year"  + (filmage == 1 ? '' : 's') +
+                        " ago while " + 
+                        age + " year" + (age == 1 ? '' : 's') + " old");
+
+                //for now forget about present and future films
+                if (filmage >= 1) {
+                        link.innerHTML =
+                                link.innerHTML.substring(0, yearindex + 4)
+                                + ", " + agetxt
+                                + link.innerHTML.substring(yearindex+4);
+                }
+        }
+}
+
+/*
 adds signs to page
 input: date persion is born
 */
 function addSigns(born) {
         /* find place to stick the info */
         var links = document.evaluate(
-                "//div[contains(@class,'ch')]",
+                // next to "Date of birth (location)" on old layout
+                // "//div[contains(@class,'ch')]",
+                "//a[contains(@href,'BornInYear')]",
                 document,
                 null,
                 XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
@@ -317,11 +383,12 @@ function addSigns(born) {
         var container = document.createTextNode(
                 tropicalZodiac(born.getMonth() + 1, born.getDate()) +
                 chineseZodiac(born.getFullYear())
-                );;
+                );
         /* should be the first occurance of the latter */
         var link = links.snapshotItem(0);
         /* attach it */
-        link.insertBefore(container, link.nextSibling);
+        //link.insertBefore(container, link.nextSibling);
+        link.parentNode.insertBefore(container, link.nextSibling);
 }
 
 /*
@@ -344,13 +411,22 @@ function addFilmAge(filmAge) {
                 /* make a node with info in */
                 var container = document.createTextNode(", " +
                         age + 
-                        " year" + (filmAge.getFullYear() == 1 ? '' : 's') +
+                        " year" + (age == 1 ? '' : 's') +
                         " ago");
-                /* should be the first occurance of the latter */
-                var link = links.snapshotItem(0);
-                /* attach it */
-                link.parentNode.insertBefore(container, link.nextSibling);
         }
+        if (age == 0) {
+                var container = document.createTextNode(", This year");
+        }
+        if (age <= -1) {
+                var container = document.createTextNode(", in " +
+                        Math.abs(age) + 
+                        " year" + (Math.abs(age) == 1 ? '' : 's'));
+
+        }
+        /* should be the first occurance of the latter */
+        var link = links.snapshotItem(0);
+        /* attach it */
+        link.parentNode.insertBefore(container, link.nextSibling);
 }
 
 /* two options, either is a name page */
@@ -361,11 +437,14 @@ if (window.location.href.indexOf('name') != -1) {
         var alive = getNameDates(born, died);
 
         /* add wanted bits */
-        if(doAge == true) {
-                addAge(alive, born, died);
-        }
         if(doSigns == true) {
                 addSigns(born);
+        }
+        if(doNameAge == true) {
+                addAge(alive, born, died);
+        }
+        if(doNameAges == true) {
+                addAges(born.getFullYear());
         }
 
 /* or a title page */
@@ -379,4 +458,3 @@ if (window.location.href.indexOf('name') != -1) {
                 addFilmAge(filmAge);
         }
 }
-
