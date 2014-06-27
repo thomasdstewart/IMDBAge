@@ -1,5 +1,5 @@
-/*  IMDBAge v2.3 - Greasemonkey script to add actors ages to IMDB pages
-    Copyright (C) 2005-2009 Thomas Stewart <thomas@stewarts.org.uk>
+/*  IMDBAge v2.4 - Greasemonkey script to add actors ages to IMDB pages
+    Copyright (C) 2005-2010 Thomas Stewart <thomas@stewarts.org.uk>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Inspired in 2001, Created on 24/03/2005, Last Changed 15/11/2009
+Inspired in 2001, Created on 24/03/2005, Last Changed 12/03/2010
 Major bug fixes and improvements by Christopher J. Madsen
 
 This is a Greasemonkey user script, see http://www.greasespot.net/,
@@ -49,32 +49,31 @@ var doFilmAge  = true;
 
 /*
 Test Cases: (In full for completeness)
-Born 18C -> Died 18C    http://us.imdb.com/name/nm1038177/ (Laurence Sterne)
-Born 18C -> Died 19C    http://us.imdb.com/name/nm0308075/ (Almeida Garrett)
+Born 18C -> Died 18C    http://us.imdb.com/name/nm1038177/ (Laurence Sterne 54)
+Born 18C -> Died 19C    http://us.imdb.com/name/nm0308075/ (Almeida Garrett 55)
 Born 18C -> Died 20C    None
 Born 18C -> Died 21C    None
 Born 18C -> Alive       None
 
-Born 19C -> Died 19C    http://us.imdb.com/name/nm0786564/ (Anna Sewell)
-Born 19C -> Died 20C    http://us.imdb.com/name/nm0186440/ (Ward Crane)
-Born 19C -> Died 21C    http://us.imdb.com/name/nm0041807/ (Germaine Auger)
-Born 19C -> Alive       http://us.imdb.com/name/nm0008724/ (Dawlad Abiad 100+)
+Born 19C -> Died 19C    http://us.imdb.com/name/nm0786564/ (Anna Sewell 58)
+Born 19C -> Died 20C    http://us.imdb.com/name/nm0186440/ (Ward Crane 38)
+Born 19C -> Died 21C    http://us.imdb.com/name/nm0041807/ (Germaine Auger 112)
+Born 19C -> Alive       http://us.imdb.com/name/nm0008724/ (Dawlad Abiad 114)
 
-Born 20C -> Died 20C    http://us.imdb.com/name/nm0001006/ (John Candy)
-Born 20C -> Died 21C    http://us.imdb.com/name/nm0670239/ (John Peel)
-Born 20C -> Alive       http://us.imdb.com/name/nm0088127/ (Alexis Bledel)
+Born 20C -> Died 20C    http://us.imdb.com/name/nm0001006/ (John Candy 43)
+Born 20C -> Died 21C    http://us.imdb.com/name/nm0670239/ (John Peel 65)
+Born 20C -> Alive       http://us.imdb.com/name/nm0088127/ (Alexis Bledel 28)
 
-Born 21C -> Died 21C    http://us.imdb.com/name/nm2548643/ (Tabea Block)
-Born 21C -> Alive       http://us.imdb.com/name/nm1468628/ (Ben Want)
+Born 21C -> Died 21C    http://us.imdb.com/name/nm2548643/ (Tabea Block 1)
+Born 21C -> Alive       http://us.imdb.com/name/nm1468628/ (Ben Want 7)
 
-Born 31 Dec 1969        http://us.imdb.com/name/nm1009503/ (Taylor McCall)
-Died 31 Dec 1969        http://us.imdb.com/name/nm0862239/ (Carol Thurston)
-Born  1 Jan 1970        http://us.imdb.com/name/nm0231191/ (Fiona Dolman)
-Died  1 Jan 1970        http://us.imdb.com/name/nm0902025/ (Eduard von Borsody)
+Born 31 Dec 1969        http://us.imdb.com/name/nm1009503/ (Taylor McCall 40)
+Died 31 Dec 1969        http://us.imdb.com/name/nm0862239/ (Carol Thurston 46)
+Born  1 Jan 1970        http://us.imdb.com/name/nm0231191/ (Fiona Dolman 40)
+Died  1 Jan 1970        http://us.imdb.com/name/nm0902025/ (Eduard von Borsody 71)
 
-month(s) http://us.imdb.com/OnThisDay?day=1&month={this month - 1}
-year(y)  http://us.imdb.com/BornInYear?{this year - 1}
-no month or day info http://us.imdb.com/name/nm1289046/
+http://us.imdb.com/date/{month}-{day}
+http://us.imdb.com/search/name?birth_year={year}
 
 This was the method I used to find some of the people above, eeeeu! 
 (If you are crasy enought to run this, expect it to take ages. It takes 30min on a Intel Core Duo 2 CPU 6400 @ 2.13GHz.)
@@ -86,23 +85,21 @@ done
 cat b.17 d.17 | sort | uniq -d
 {list of people born and died in 18C}
 $ wc -l b.17 d.17 b.18 d.18 b.19 d.19 b.20 d.20 
-     209 b.17
-      83 d.17
-   23700 b.18
-     537 d.18
-  219135 b.19
-   54588 d.19
-    1701 b.20
-   14066 d.20
-  314019 total
+     235 b.17
+      91 d.17
+   26449 b.18
+     586 d.18
+  282661 b.19
+   61817 d.19
+    2477 b.20
+   22461 d.20
+  396777 total
 $
 */
 
 /*
-TODO: inline png's of the signs, wp has some fre svg's http://en.wikipedia.org/wiki/Signs_of_the_Zodiac
+TODO: inline png's of the signs, wp has some fre svg's http://en.wikipedia.org/wiki/Signs_of_the_Zodiac These are genrally too large to inline
 TODO: add ages to individual ages of actors to a film page, very hard, http req for each one, and then a xpath on the whole result
-TODO: adjust for logged in or logged off page, fix film ages on name page for old layout
-TODO: fix year grabbing code to handle year ranges eg Gilmore Girls 2000-2007
 TODO: fix year attaching to handle "2007/I", eg http://us.imdb.com/title/tt0292816/
 */
 
@@ -187,7 +184,7 @@ function getNameDates(born, died) {
 
         /* loop over all the a tags involving dates */
         var links = document.evaluate(
-                "//a[contains(@href,'OnThisDay')] | //a[contains(@href,'BornInYear')] | //a[contains(@href,'DiedInYear')]",
+                "//a[contains(@href,'/date')] | //a[contains(@href,'birth_year')] | //a[contains(@href,'death_date')]",
                 document,
                 null,
                 XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
@@ -199,39 +196,19 @@ function getNameDates(born, died) {
 
                 var href = new String( link.getAttribute("href") );
                 /* extract date and month */
-                if (href.indexOf('OnThisDay') != -1) {
-                        /* search href= string for vars */
-                        var dateindex   = href.indexOf('day=');
-                        var monthindex = href.indexOf('month=');
-
-                        /* use results to extract actual data */
-                        date = href.substring(dateindex + 4, monthindex - 1);
-                        month = href.substring(monthindex + 6);
-
-                        /* convert month into a number */
-                        switch (month) {
-                                case 'January':         month = 0;      break;
-                                case 'February':        month = 1;      break;
-                                case 'March':           month = 2;      break;
-                                case 'April':           month = 3;      break;
-                                case 'May':             month = 4;      break;
-                                case 'June':            month = 5;      break;
-                                case 'July':            month = 6;      break;
-                                case 'August':          month = 7;      break;
-                                case 'September':       month = 8;      break;
-                                case 'October':         month = 9;      break;
-                                case 'November':        month = 10;     break;
-                                case 'December':        month = 11;     break;
-                        }
+                if (href.indexOf('/date') != -1) {
+                        /* extract actual data */
+                        month = parseFloat(href.substring(6, 8)) - 1;
+                        date = href.substring(9, 11);
                 }
                 /* extract the year */
-                else if (href.indexOf('BornInYear') != -1) {
+                else if (href.indexOf('birth_year') != -1) {
                         born.setFullYear(href.substring(href.length - 4));
                         born.setMonth(month);
                         born.setDate(date);
                         alive = true;
                 }
-                else if (href.indexOf('DiedInYear') != -1) {
+                else if (href.indexOf('death_date') != -1) {
                         died.setFullYear(href.substring(href.length - 4));
                         died.setMonth(month);
                         died.setDate(date);
@@ -248,7 +225,7 @@ returns: year of title
 */
 function getTitleDates() {
         var links = document.evaluate(
-                "//a[contains(@href,'Years')]/text()",
+                "//a[contains(@href,'year')]/text()",
                 document,
                 null,
                 XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
@@ -282,12 +259,13 @@ function addAge(alive, born, died) {
         var months = Math.floor( (age - years) * 12 );
 
         var links = document.evaluate(
-                "//a[contains(@href,'OnThisDay')]",
+                "//a[contains(@href,'/date')]",
                 document,
                 null,
                 XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
                 null);
-
+        
+        /* only print the year if there arn't dates */
         if ((alive == true && links.snapshotLength == 1) || 
             (alive == false && links.snapshotLength == 2)) {
                 justyear = false;
@@ -297,12 +275,12 @@ function addAge(alive, born, died) {
 
         /* loop over all the a tags involving dates */
         var links = document.evaluate(
-                "//a[contains(@href,'BornInYear')] | //a[contains(@href,'DiedInYear')]",
+                "//a[contains(@href,'birth_year')] | //a[contains(@href,'death_date')]",
                 document,
                 null,
                 XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
                 null);
-
+        
         /* only count months if we found month & day info */
         var container = document.createTextNode(
                         " (Age: " + 
@@ -385,9 +363,7 @@ input: date person is born
 function addSigns(born) {
         /* find place to stick the info */
         var links = document.evaluate(
-                // next to "Date of birth (location)" on old layout
-                // "//div[contains(@class,'ch')]",
-                "//a[contains(@href,'BornInYear')]",
+                "//a[contains(@href,'birth_year')]",
                 document,
                 null,
                 XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
@@ -427,12 +403,11 @@ function addFilmAge(filmAge) {
                 var container = document.createTextNode(", in " +
                         Math.abs(age) + 
                         " year" + (Math.abs(age) == 1 ? '' : 's'));
-
         }
 
         /* find place to stick the info */
         var links = document.evaluate(
-                "//a[contains(@href,'Years')]",
+                "//a[contains(@href,'year')]",
                 document,
                 null,
                 XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
