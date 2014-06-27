@@ -1,5 +1,5 @@
-/*  IMDBAge v2.5 - Greasemonkey script to add actors ages to IMDB pages
-    Copyright (C) 2005-2010 Thomas Stewart <thomas@stewarts.org.uk>
+/*  IMDBAge v2.6 - Greasemonkey script to add actors ages to IMDB pages
+    Copyright (C) 2005-2011 Thomas Stewart <thomas@stewarts.org.uk>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,11 +14,15 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Inspired in 2001, Created on 24/03/2005, Last Changed 12/03/2010
+Inspired in 2001, Created on 24/03/2005, Last Changed 17/09/2011
 Major bug fixes and improvements by Christopher J. Madsen
 
 This is a Greasemonkey user script, see http://www.greasespot.net/,
 https://addons.mozilla.org/firefox/addon/748 and http://userscripts.org/
+
+New versions can be found either on my site or on the userscripts site:
+http://www.stewarts.org.uk/tomsweb/IMDBAge
+http://userscripts.org/scripts/show/1060
 
 This script adds the age and other various info onto IMDB pages. Specifically
 it adds some details to actor or actresses pages. It adds their age, their
@@ -76,7 +80,7 @@ http://us.imdb.com/date/{month}-{day}
 http://us.imdb.com/search/name?birth_year={year}
 
 This was the method I used to find some of the people above, eeeeu! 
-(If you are crasy enought to run this, expect it to take ages. It takes 30min on a Intel Core Duo 2 CPU 6400 @ 2.13GHz.)
+(If you are crazy enough to run this, expect it to take ages. It takes 30min on a Intel Core Duo 2 CPU 6400 @ 2.13GHz.)
 (ftp://ftp.fu-berlin.de/pub/misc/movies/database)
 for c in 17 18 19 20; do
         $( cat biographies.list.gz | gunzip -c | egrep "^NM: |^DB: |^DD: " | while read line; do echo -n "$line "; done | sed 's/NM: /\nNM: /g' | grep "$c[0-9][0-9]" | while read line; do if [ `echo $line | awk -F: '{print $3}' | grep "$c[0-9][0-9]" | wc -l | awk '{print $1}'` -eq 1 ]; then echo $line; fi; done > b.$c ) &
@@ -98,13 +102,9 @@ $
 */
 
 /*
-TODO: inline png's of the signs, wp has some fre svg's
-        http://en.wikipedia.org/wiki/Signs_of_the_Zodiac
-        These are genrally too large to inline
 TODO: add ages to individual ages of actors to a film page, very hard,
         http req for each one, and then a xpath on the whole result
 TODO: fix year attaching to handle "2007/I"
-        eg http://us.imdb.com/title/tt0292816/
 TODO: add script updater support
 TODO: add persistant config
 */
@@ -119,29 +119,29 @@ function tropicalZodiac(month, day) {
         var sign;
         /* link the month and day to the sign */
         if     (month ==  3 && day >= 21 ||
-                month ==  4 && day <= 19) {sign = "Aries";}
+                month ==  4 && day <= 19) {sign = "Aries - ♈";}
         else if(month ==  4 && day >= 20 ||
-                month ==  5 && day <= 20) {sign = "Taurus";}
+                month ==  5 && day <= 20) {sign = "Taurus - ♉";}
         else if(month ==  5 && day >= 21 ||
-                month ==  6 && day <= 20) {sign = "Gemini";}
+                month ==  6 && day <= 20) {sign = "Gemini - ♊";}
         else if(month ==  6 && day >= 21 ||
-                month ==  7 && day <= 22) {sign = "Cancer";}
+                month ==  7 && day <= 22) {sign = "Cancer - ♋";}
         else if(month ==  7 && day >= 23 ||
-                month ==  8 && day <= 22) {sign = "Leo";}
+                month ==  8 && day <= 22) {sign = "Leo - ♌";}
         else if(month ==  8 && day >= 23 ||
-                month ==  9 && day <= 22) {sign = "Virgo";}
+                month ==  9 && day <= 22) {sign = "Virgo - ♍";}
         else if(month ==  9 && day >= 23 ||
-                month == 10 && day <= 22) {sign = "Libra";}
+                month == 10 && day <= 22) {sign = "Libra - ♎";}
         else if(month == 10 && day >= 23 ||
-                month == 11 && day <= 21) {sign = "Scorpio";}
+                month == 11 && day <= 21) {sign = "Scorpio - ♏";}
         else if(month == 11 && day >= 22 ||
-                month == 12 && day <= 21) {sign = "Sagittarius";}
+                month == 12 && day <= 21) {sign = "Sagittarius - ♐";}
         else if(month == 12 && day >= 22 ||
-                month ==  1 && day <= 19) {sign = "Capricorn";}
+                month ==  1 && day <= 19) {sign = "Capricorn - ♑";}
         else if(month ==  1 && day >= 20 ||
-                month ==  2 && day <= 18) {sign = "Aquarius";}
+                month ==  2 && day <= 18) {sign = "Aquarius - ♒";}
         else if(month ==  2 && day >= 19 ||
-                month ==  3 && day <= 20) {sign = "Pisces";}
+                month ==  3 && day <= 20) {sign = "Pisces - ♓";}
         else {return "";} /* unknown also catches odd dates */
         /* return text with comma and label */
         return ", Tropical Zodiac Sign: " + sign;
@@ -185,12 +185,12 @@ input: born and died called by ref, they are filled with dates from the page
 output: whether they are dead of alive
 */
 function getNameDates(born, died) {
-        var date = 1; var month = 0; /* initially set to 1st of Jan */
+        var day = 1; var month = 0; /* initially set to 1st of Jan */
         var alive;
 
         /* loop over all the a tags involving dates */
         var links = document.evaluate(
-                "//a[contains(@href,'/date')] | //a[contains(@href,'birth_year')] | //a[contains(@href,'death_date')]",
+                "//a[contains(@href,'birth_monthday')] | //a[contains(@href,'birth_year')] | //a[contains(@href,'deaths')] | //a[contains(@href,'death_date')]",
                 document,
                 null,
                 XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
@@ -202,22 +202,27 @@ function getNameDates(born, died) {
 
                 var href = new String( link.getAttribute("href") );
                 /* extract date and month */
-                if (href.indexOf('/date') != -1) {
+                if (href.indexOf('birth_monthday') > 0) {
+                        /* extract actual data */
+                        month = parseFloat(href.substring(28, 30)) - 1;
+                        day = href.substring(31, 33);
+                }
+                else if (href.indexOf('deaths') > 0) {
                         /* extract actual data */
                         month = parseFloat(href.substring(6, 8)) - 1;
-                        date = href.substring(9, 11);
+                        day = href.substring(9, 11);
                 }
                 /* extract the year */
-                else if (href.indexOf('birth_year') != -1) {
+                else if (href.indexOf('birth_year') > 0) {
                         born.setFullYear(href.substring(href.length - 4));
                         born.setMonth(month);
-                        born.setDate(date);
+                        born.setDate(day);
                         alive = true;
                 }
-                else if (href.indexOf('death_date') != -1) {
+                else if (href.indexOf('death_date') > 0) {
                         died.setFullYear(href.substring(href.length - 4));
                         died.setMonth(month);
-                        died.setDate(date);
+                        died.setDate(day);
                         alive = false;
                 }
         }
