@@ -1,4 +1,4 @@
-/*  IMDBAge v2.4 - Greasemonkey script to add actors ages to IMDB pages
+/*  IMDBAge v2.5 - Greasemonkey script to add actors ages to IMDB pages
     Copyright (C) 2005-2010 Thomas Stewart <thomas@stewarts.org.uk>
 
     This program is free software: you can redistribute it and/or modify
@@ -98,9 +98,15 @@ $
 */
 
 /*
-TODO: inline png's of the signs, wp has some fre svg's http://en.wikipedia.org/wiki/Signs_of_the_Zodiac These are genrally too large to inline
-TODO: add ages to individual ages of actors to a film page, very hard, http req for each one, and then a xpath on the whole result
-TODO: fix year attaching to handle "2007/I", eg http://us.imdb.com/title/tt0292816/
+TODO: inline png's of the signs, wp has some fre svg's
+        http://en.wikipedia.org/wiki/Signs_of_the_Zodiac
+        These are genrally too large to inline
+TODO: add ages to individual ages of actors to a film page, very hard,
+        http req for each one, and then a xpath on the whole result
+TODO: fix year attaching to handle "2007/I"
+        eg http://us.imdb.com/title/tt0292816/
+TODO: add script updater support
+TODO: add persistant config
 */
 
 /*
@@ -310,7 +316,7 @@ input: full year or birth
 function addAges(born) {
         //find all the films, this in includes things like producer and writer
         var links = document.evaluate(
-                "//div[contains(@class,'filmo')]/ol/li",
+                "//span[contains(@class,'year_column')]",
                 document,
                 null,
                 XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
@@ -320,9 +326,9 @@ function addAges(born) {
         for (var i = 0; i < links.snapshotLength; i++) {
                 var link = links.snapshotItem(i);
                 //extract the year of the film
-                yearindex = link.innerHTML.search("\\([0-9]{4}\\)")
-                var filmborn = link.innerHTML.substring(yearindex + 1,
-                        yearindex + 5);
+                yearindex = link.innerHTML.search("[0-9]{4}")
+                var filmborn = link.innerHTML.substring(yearindex,
+                        yearindex + 4);
 
                 //calculate ages
                 var filmage = new Date().getFullYear() - filmborn;
@@ -349,10 +355,7 @@ function addAges(born) {
                                 " ago while " + age);
                 }
 
-                link.innerHTML =
-                        link.innerHTML.substring(0, yearindex + 5)
-                        + ", " + agetxt
-                        + link.innerHTML.substring(yearindex + 5);
+                link.innerHTML = agetxt + ", " + link.innerHTML;
         }
 }
 
