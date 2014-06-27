@@ -1,5 +1,5 @@
-/*  IMDBAge v2.10 - Greasemonkey script to add actors ages to IMDB pages
-    Copyright (C) 2005-2013 Thomas Stewart <thomas@stewarts.org.uk>
+/*  IMDBAge v2.11 - Greasemonkey script to add actors ages to IMDB pages
+    Copyright (C) 2005-2014 Thomas Stewart <thomas@stewarts.org.uk>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,15 +14,16 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Inspired in 2001, Created on 24/03/2005, Last Changed 12/10/2013
+Inspired in 2001, Created on 24/03/2005, Last Changed 25/06/2014
 Major bug fixes and improvements by Christopher J. Madsen
 
 This is a Greasemonkey user script, see http://www.greasespot.net/,
 https://addons.mozilla.org/firefox/addon/748 and http://userscripts.org/
 
-New versions can be found either on my site or on the userscripts site:
+New versions can be found either on my site, userscripts or greasyfork:
 http://www.stewarts.org.uk/tomsweb/IMDBAge
 http://userscripts.org/scripts/show/1060
+https://greasyfork.org/scripts/2798-imdbage
 
 This script adds the age and other various info onto IMDB pages. Specifically
 it adds some details to actor or actresses pages. It adds their age, their
@@ -50,7 +51,7 @@ GM_setValue("doFilmAge",  doFilmAge)
 // ==UserScript==
 // @name        IMDBAge
 // @description Adds the age and other various info onto IMDB pages.
-// @version     2.10
+// @version     2.11
 // @namespace   http://www.stewarts.org.uk
 // @include     http://*imdb.com/name/*
 // @include     http://*imdb.com/title/*
@@ -77,18 +78,18 @@ Born 18C -> Alive       None
 Born 19C -> Died 19C    http://us.imdb.com/name/nm0786564/ (Anna Sewell 58)
 Born 19C -> Died 20C    http://us.imdb.com/name/nm0186440/ (Ward Crane 38)
 Born 19C -> Died 21C    http://us.imdb.com/name/nm0041807/ (Germaine Auger 112)
-Born 19C -> Alive       http://us.imdb.com/name/nm0008724/ (Dawlad Abiad 117)
+Born 19C -> Alive       http://us.imdb.com/name/nm0008724/ (Dawlad Abiad 118)
 
 Born 20C -> Died 20C    http://us.imdb.com/name/nm0001006/ (John Candy 43)
 Born 20C -> Died 21C    http://us.imdb.com/name/nm0670239/ (John Peel 65)
-Born 20C -> Alive       http://us.imdb.com/name/nm0088127/ (Alexis Bledel 31)
+Born 20C -> Alive       http://us.imdb.com/name/nm0088127/ (Alexis Bledel 32)
 
 Born 21C -> Died 21C    http://us.imdb.com/name/nm2548643/ (Tabea Block 1)
-Born 21C -> Alive       http://us.imdb.com/name/nm1468628/ (Ben Want 10)
+Born 21C -> Alive       http://us.imdb.com/name/nm1468628/ (Ben Want 11)
 
-Born 31 Dec 1969        http://us.imdb.com/name/nm1009503/ (Taylor McCall 42)
+Born 31 Dec 1969        http://us.imdb.com/name/nm1009503/ (Taylor McCall 44)
 Died 31 Dec 1969        http://us.imdb.com/name/nm0862239/ (Carol Thurston 46)
-Born  1 Jan 1970        http://us.imdb.com/name/nm0231191/ (Fiona Dolman 40)
+Born  1 Jan 1970        http://us.imdb.com/name/nm0231191/ (Fiona Dolman 44)
 Died  1 Jan 1970        http://us.imdb.com/name/nm0902025/ (Eduard von Borsody 71)
 
 http://us.imdb.com/date/{month}-{day}
@@ -241,8 +242,13 @@ returns: year of title
 function getTitleDates() {
         var nodes = document.evaluate(
                 /* old style and new style */
-                "//a[contains(@href,'year')]|//span[contains(@class,'nobr')]",
+                /* "//a[contains(@href,'year')]|//span[contains(@class,'nobr')]", */
+                "//*[@class='header']//span[contains(@class,'nobr')]",
                 document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+
+        if (nodes.snapshotLength != 1) {
+                return;
+        } 
 
         /* get the result */
         yeartxt = nodes.snapshotItem(0).innerHTML;
@@ -436,7 +442,8 @@ function addFilmAge(filmAge) {
         /* find place to stick the info */
         var nodes = document.evaluate(
                 /* old style and new style */
-                "//a[contains(@href,'year')]|//span[contains(@class,'nobr')]",
+                /* "//a[contains(@href,'year')]|//span[contains(@class,'nobr')]", */
+                "//*[@class='header']//span[contains(@class,'nobr')]",
                 document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
         /* create new span with formatting to match */
@@ -487,7 +494,7 @@ if (window.location.href.indexOf('name') != -1) {
         filmAge = getTitleDates();
 
         /* add wanted bits */
-        if(doFilmAge == true) {
+        if(doFilmAge == true && typeof(filmAge) == "object") {
                 addFilmAge(filmAge);
         }
 }
