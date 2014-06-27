@@ -1,5 +1,5 @@
-/*  IMDBAge v2.2 - Greasemonkey script to add actors ages to IMDB pages
-    Copyright (C) 2005-2007 Thomas Stewart <thomas@stewarts.org.uk>
+/*  IMDBAge v2.3 - Greasemonkey script to add actors ages to IMDB pages
+    Copyright (C) 2005-2009 Thomas Stewart <thomas@stewarts.org.uk>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,20 +14,21 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Insipred in 2001, Created on 24/03/2005, Last Changed 21/08/2007
-Major bug fixes and improvments by Christopher J. Madsen
+Inspired in 2001, Created on 24/03/2005, Last Changed 15/11/2009
+Major bug fixes and improvements by Christopher J. Madsen
 
-This is a Greasemonkey user script, see http://www.greasespot.net/ and
-http://userscripts.org/
+This is a Greasemonkey user script, see http://www.greasespot.net/,
+https://addons.mozilla.org/firefox/addon/748 and http://userscripts.org/
 
-This script adds the age of an actor or actress, their Tropical Zodiac Sign and
-their Chinese Zodiac Sign on their IMDB page. It also adds how many years ago
-and how old they were when they made the listed films. It also how long ago
-the films was made.
+This script adds the age and other various info onto IMDB pages. Specifically
+it adds some details to actor or actresses pages. It adds their age, their
+Tropical Zodiac Sign and their Chinese Zodiac Sign. As well as adding how many
+years ago and how old they were when they made the listed films. It also adds
+how long a go a film was made on a film page.
 
 Any of the above can be turned on or off by commenting or uncommenting any of
 the following variables below. Edit this script once it's installed comment and
-uncomment as nessesary. */
+uncomment as necessary. */
 
 var doNameAge  = true;
 var doNameAges = true;
@@ -98,10 +99,11 @@ $
 */
 
 /*
-TODO: inline png's of the signs, wp has some fre svg's http://en.wikipedia.org/wiki/Signs_of_the_Zodiac#Table_of_constellations_vs._zodiac_signs
+TODO: inline png's of the signs, wp has some fre svg's http://en.wikipedia.org/wiki/Signs_of_the_Zodiac
 TODO: add ages to individual ages of actors to a film page, very hard, http req for each one, and then a xpath on the whole result
 TODO: adjust for logged in or logged off page, fix film ages on name page for old layout
 TODO: fix year grabbing code to handle year ranges eg Gilmore Girls 2000-2007
+TODO: fix year attaching to handle "2007/I", eg http://us.imdb.com/title/tt0292816/
 */
 
 /*
@@ -242,29 +244,29 @@ function getNameDates(born, died) {
 
 /*
 get dates from a title page
-input: year called by ref, filled with year of title
+returns: year of title
 */
-function getTitleDates(year) {
-        /* loop over all the a tags involving dates */
+function getTitleDates() {
         var links = document.evaluate(
-                "//a[contains(@href,'Years')]",
+                "//a[contains(@href,'Years')]/text()",
                 document,
                 null,
                 XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
                 null);
 
-        var href = links.snapshotItem(0).getAttribute("href");
-        year.setFullYear(href.substring(href.length - 4));
+        year = new Date();
+        year.setFullYear(links.snapshotItem(0).data);
+        return year;
 }
 
 /*
-add age of persion to page
+add age of person to page
 input: alive status, and dates
 */
 function addAge(alive, born, died) {
         var justyear;
 
-        /* find the differance between two times */
+        /* find the difference between two times */
         var age;
         if (died == undefined) {
                 age = new Date() - born.getTime();
@@ -339,34 +341,46 @@ function addAges(born) {
         //loop round each film
         for (var i = 0; i < links.snapshotLength; i++) {
                 var link = links.snapshotItem(i);
-                var yearindex = link.innerHTML.indexOf('\)') - 4;
                 //extract the year of the film
-                var filmborn = link.innerHTML.substring(yearindex,
-                                yearindex + 4);
+                yearindex = link.innerHTML.search("\\([0-9]{4}\\)")
+                var filmborn = link.innerHTML.substring(yearindex + 1,
+                        yearindex + 5);
 
                 //calculate ages
                 var filmage = new Date().getFullYear() - filmborn;
                 var age = filmborn - born;
+                age = new String(age +
+                        " year" + (age == 1 ? '' : 's') + " old");
 
                 //get them in a nice format
-                var agetxt = new String(
-                        filmage + " year"  + (filmage == 1 ? '' : 's') +
-                        " ago while " + 
-                        age + " year" + (age == 1 ? '' : 's') + " old");
-
-                //for now forget about present and future films
-                if (filmage >= 1) {
-                        link.innerHTML =
-                                link.innerHTML.substring(0, yearindex + 4)
-                                + ", " + agetxt
-                                + link.innerHTML.substring(yearindex+4);
+                if (filmage < 0) {
+                        var agetxt = new String(
+                                "in " +
+                                Math.abs(filmage) + " year" +
+                                (Math.abs(filmage) == 1 ? '' : 's') +
+                                " will be " + age);
                 }
+                if (filmage == 0) {
+                        var agetxt = new String(
+                                "this year while " + age);
+                }
+                if (filmage > 0) {
+                        var agetxt = new String(
+                                Math.abs(filmage) + " year" +
+                                (Math.abs(filmage) == 1 ? '' : 's') +
+                                " ago while " + age);
+                }
+
+                link.innerHTML =
+                        link.innerHTML.substring(0, yearindex + 5)
+                        + ", " + agetxt
+                        + link.innerHTML.substring(yearindex + 5);
         }
 }
 
 /*
 adds signs to page
-input: date persion is born
+input: date person is born
 */
 function addSigns(born) {
         /* find place to stick the info */
@@ -396,14 +410,6 @@ add the age of the film to the page
 input: date of film
 */
 function addFilmAge(filmAge) {
-        /* find place to stick the info */
-        var links = document.evaluate(
-                "//a[contains(@href,'Years')]",
-                document,
-                null,
-                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-                null);
-
         /* calc age */
         var age = new Date().getFullYear() - filmAge.getFullYear();
         /* only print if age is 1 or over */
@@ -423,7 +429,16 @@ function addFilmAge(filmAge) {
                         " year" + (Math.abs(age) == 1 ? '' : 's'));
 
         }
-        /* should be the first occurance of the latter */
+
+        /* find place to stick the info */
+        var links = document.evaluate(
+                "//a[contains(@href,'Years')]",
+                document,
+                null,
+                XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+                null);
+
+        /* should be the first occurrence of the latter */
         var link = links.snapshotItem(0);
         /* attach it */
         link.parentNode.insertBefore(container, link.nextSibling);
@@ -449,9 +464,8 @@ if (window.location.href.indexOf('name') != -1) {
 
 /* or a title page */
 } else if (window.location.href.indexOf('title') != -1) {
-        filmAge = new Date();
         /* get needed dates */
-        getTitleDates(filmAge);
+        filmAge = getTitleDates();
 
         /* add wanted bits */
         if(doFilmAge == true) {
