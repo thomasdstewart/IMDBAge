@@ -1,4 +1,4 @@
-/*  IMDBAge v2.6 - Greasemonkey script to add actors ages to IMDB pages
+/*  IMDBAge v2.7 - Greasemonkey script to add actors ages to IMDB pages
     Copyright (C) 2005-2011 Thomas Stewart <thomas@stewarts.org.uk>
 
     This program is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Inspired in 2001, Created on 24/03/2005, Last Changed 17/09/2011
+Inspired in 2001, Created on 24/03/2005, Last Changed 24/09/2011
 Major bug fixes and improvements by Christopher J. Madsen
 
 This is a Greasemonkey user script, see http://www.greasespot.net/,
@@ -30,25 +30,31 @@ Tropical Zodiac Sign and their Chinese Zodiac Sign. As well as adding how many
 years ago and how old they were when they made the listed films. It also adds
 how long a go a film was made on a film page.
 
-Any of the above can be turned on or off by commenting or uncommenting any of
-the following variables below. Edit this script once it's installed comment and
-uncomment as necessary. */
+Any of the above can be turned on or off by setting the following settings in about:config:
+greasemonkey.scriptvals.http://www.stewarts.org.uk/IMDBAge.doFilmAge
+greasemonkey.scriptvals.http://www.stewarts.org.uk/IMDBAge.doNameAge
+greasemonkey.scriptvals.http://www.stewarts.org.uk/IMDBAge.doNameAges
+greasemonkey.scriptvals.http://www.stewarts.org.uk/IMDBAge.doSigns
+*/
 
-var doNameAge  = true;
-var doNameAges = true;
-var doSigns    = true;
-var doFilmAge  = true;
-//var doNameAge  = false;
-//var doNameAges = false;
-//var doSigns    = false;
-//var doFilmAge  = false;
+var doNameAge  = GM_getValue("doNameAge",  true);
+var doNameAges = GM_getValue("doNameAges", true);
+var doSigns    = GM_getValue("doSigns",    true);
+var doFilmAge  = GM_getValue("doFilmAge",  true);
+
+GM_setValue("doNameAge",  doNameAge)
+GM_setValue("doNameAges", doNameAges)
+GM_setValue("doSigns",    doSigns)
+GM_setValue("doFilmAge",  doFilmAge)
 
 // ==UserScript==
-// @name          IMDBAge
-// @namespace     http://www.stewarts.org.uk/stuff
-// @description	  Adds the age and other various info onto IMDB pages.
-// @include       http://*imdb.com/name/*
-// @include       http://*imdb.com/title/*
+// @name        IMDBAge
+// @description Adds the age and other various info onto IMDB pages.
+// @version     2.7
+// @namespace   http://www.stewarts.org.uk
+// @include     http://*imdb.com/name/*
+// @include     http://*imdb.com/title/*
+// @icon        http://www.stewarts.org.uk/tomsweb/IMDBAge?action=AttachFile&do=get&target=icon.png  
 // ==/UserScript==
 
 /*
@@ -105,8 +111,8 @@ $
 TODO: add ages to individual ages of actors to a film page, very hard,
         http req for each one, and then a xpath on the whole result
 TODO: fix year attaching to handle "2007/I"
+TODO: fix year attachiog to handle "(TV Series 2000-2007)" better
 TODO: add script updater support
-TODO: add persistant config
 */
 
 /*
