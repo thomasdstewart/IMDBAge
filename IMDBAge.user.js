@@ -1,5 +1,5 @@
-/*  IMDBAge v2.9 - Greasemonkey script to add actors ages to IMDB pages
-    Copyright (C) 2005-2012 Thomas Stewart <thomas@stewarts.org.uk>
+/*  IMDBAge v2.10 - Greasemonkey script to add actors ages to IMDB pages
+    Copyright (C) 2005-2013 Thomas Stewart <thomas@stewarts.org.uk>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Inspired in 2001, Created on 24/03/2005, Last Changed 23/12/2012
+Inspired in 2001, Created on 24/03/2005, Last Changed 12/10/2013
 Major bug fixes and improvements by Christopher J. Madsen
 
 This is a Greasemonkey user script, see http://www.greasespot.net/,
@@ -50,10 +50,12 @@ GM_setValue("doFilmAge",  doFilmAge)
 // ==UserScript==
 // @name        IMDBAge
 // @description Adds the age and other various info onto IMDB pages.
-// @version     2.9
+// @version     2.10
 // @namespace   http://www.stewarts.org.uk
 // @include     http://*imdb.com/name/*
 // @include     http://*imdb.com/title/*
+// @grant       GM_getValue
+// @grant       GM_setValue
 // @icon        http://www.stewarts.org.uk/tomsweb/IMDBAge?action=AttachFile&do=get&target=icon.png  
 // ==/UserScript==
 
@@ -201,59 +203,35 @@ input: born and died called by ref, they are filled with dates from the page
 output: whether they are dead of alive
 */
 function getNameDates(born, died) {
-        var day = 1; var month = 0; /* initially set to 1st of Jan */
-        var alive;
-
-        /* loop over all the a tags involving dates */
+	var alive = false;
+	
+	/* find the birth date */
         var nodes = document.evaluate(
-                "//a[contains(@href,'birth_monthday')] | " +
-                "//a[contains(@href,'deaths')] | " +
-                "//a[contains(@href,'death_monthday')] | " +
-                "//a[contains(@href,'birth_year')] | " +
-                "//a[contains(@href,'death_date')]",
+                "//time[contains(@itemprop,'birthDate')]",
                 document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+	
+	if (nodes.snapshotLength == 1) {
+		date = nodes.snapshotItem(0).getAttribute("datetime").split("-")
+		born.setFullYear(date[0]);
+		born.setMonth(date[1] - 1);
+		born.setDate(date[2]);
+		alive = true
+	}
 
-        /* loop over all dates */
-        for (var i = 0; i < nodes.snapshotLength; i++) {
-                var node = nodes.snapshotItem(i);
-
-                var href = new String( node.getAttribute("href") );
-                /* extract date and month */
-                if (href.indexOf('birth_monthday') > 0 ||
-                                href.indexOf('death_monthday') > 0) {
-                        /* extract actual data */
-                        month = parseFloat(href.substring(28, 30));
-                        day = href.substring(31, 33);
-                        //alert(href);
-                        //alert("birth_monthday|death_monday:"+month+","+day);
-                }
-                else if (href.indexOf('deaths') > 0) {
-                        /* extract actual data */
-                        month = parseFloat(href.substring(6, 8));
-                        day = href.substring(9, 11);
-                        //alert(href);
-                        //alert("deaths:" + month + "," + day);
-                }
-                /* extract the year */
-                else if (href.indexOf('birth_year') > 0) {
-                        born.setFullYear(href.substring(href.length - 4));
-                        born.setMonth(month - 1);
-                        born.setDate(day);
-                        alive = true;
-                        //alert(href);
-                        //alert("birth_year:" + born);
-                }
-                else if (href.indexOf('death_date') > 0) {
-                        died.setFullYear(href.substring(href.length - 4));
-                        died.setMonth(month - 1);
-                        died.setDate(day);
-                        alive = false;
-                        //alert(href);
-                        //alert("death_date:" + died);
-                }
-        }
+	/* find the death date */
+        var nodes = document.evaluate(
+                "//time[contains(@itemprop,'deathDate')]",
+                document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+	
+	if (nodes.snapshotLength == 1) {
+		t=nodes.snapshotItem(0).getAttribute("datetime").split("-")
+		died.setFullYear(date[0]);
+		died.setMonth(date[1]);
+		died.setDate(date[2]);
+		alive = false
+	}
         //alert("Born: " + born + "\nDied: " + died + "\nAlive: " + alive);
-        return alive;
+	return alive;
 }
 
 /*
