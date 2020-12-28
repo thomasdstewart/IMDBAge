@@ -1,5 +1,5 @@
-/*  IMDBAge v2.13 - Greasemonkey script to add actors ages to IMDB pages
-    Copyright (C) 2005-2018 Thomas Stewart <thomas@stewarts.org.uk>
+/*  IMDBAge v2.14 - Greasemonkey script to add actors ages to IMDB pages
+    Copyright (C) 2005-2020 Thomas Stewart <thomas@stewarts.org.uk>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,14 +14,14 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-    Inspired in 2001, Created on 24/03/2005, Last Changed 01/05/2018
+    Inspired in 2001, Created on 24/03/2005, Last Changed 28/12/2020
     Major bug fixes and improvements by Christopher J. Madsen
 
     This is a Greasemonkey user script, see http://www.greasespot.net/ and
     https://addons.mozilla.org/firefox/addon/748
 
     New versions can be found on the following sites:
-    http://www.stewarts.org.uk/tomsweb/IMDBAge
+    https://stewarts.org.uk/project/imdbage/
     http://userscripts.org/scripts/show/1060 (dead)
     https://greasyfork.org/scripts/2798-imdbage
     https://monkeyguts.com/code.php?id=268 (dead)
@@ -37,6 +37,7 @@
     This script is not abandoned, email thomas@stewarts.org.uk if it breaks.
 
     Changelog
+    * 2.14 fixed icon, improved getNameDates, new style fixes, reformating
     * 2.13 added https urls, removed scriptvals, fixed title pages
     * 2.12 fixed adding ages to individual films and fixed old style
     * 2.11 fixed date grabbing again
@@ -50,7 +51,7 @@
     * 2.3 improved year grabbing
     * 2.2 updated imdb text info, formatting, added ages to individual films
     * 2.1 Major changes, added signs, added config
-    * 1.6 Added improvement ideas from Christopher J. Madsen, Added first imdb text files search, Reformatting
+    * 1.6 Added improvement ideas from Christopher J. Madsen, Added first imdb text files search, reformatting
     * 1.5 Removed function enclosing while script
     * 1.3 First public version
 */
@@ -63,193 +64,166 @@ var doFilmAge  = true;
 // ==UserScript==
 // @name        IMDBAge
 // @description Adds the age and other various info onto IMDB pages.
-// @version     2.13
+// @version     2.14
 // @author      Thomas Stewart
 // @namespace   http://www.stewarts.org.uk
 // @include     http*://*imdb.com/name/*
 // @include     http*://*imdb.com/title/*
-// @icon        http://www.stewarts.org.uk/tomsweb/IMDBAge?action=AttachFile&do=get&target=icon.png  
-// @license     GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
+// @homepageURL https://stewarts.org.uk/project/imdbage/
+// @installURL  https://stewarts.org.uk/project/imdbage/IMDBAge.user.js
+// @icon        https://stewarts.org.uk/project/imdbage/icon.png
+// @license GPL-3.0-or-later; http://www.gnu.org/licenses/gpl-3.0.txt
 // ==/UserScript==
 
 /*
 (https://secure.imdb.com/register-imdb/siteprefs)
 Title Test Cases:
-plain year              http://www.imdb.com/title/tt0056172/
-year range              http://www.imdb.com/title/tt0108757/
-year range still open   http://www.imdb.com/title/tt0944947/
-year with version       http://www.imdb.com/title/tt1008690/ (dead)
+plain year              https://www.imdb.com/title/tt0056172/
+year range              https://www.imdb.com/title/tt0108757/
+year range still open   https://www.imdb.com/title/tt0944947/
+year with version       https://www.imdb.com/title/tt1008690/ (dead)
 
 Name Test Cases: (In full for completeness)
-Born 18C -> Died 18C    http://us.imdb.com/name/nm1038177/ (Laurence Sterne 54)
-Born 18C -> Died 19C    http://us.imdb.com/name/nm0308075/ (Almeida Garrett 55)
+Born 18C -> Died 18C    https://www.imdb.com/name/nm1038177/ (Laurence Sterne 54)
+Born 18C -> Died 19C    https://www.imdb.com/name/nm0308075/ (Almeida Garrett 55)
 Born 18C -> Died 20C    None
 Born 18C -> Died 21C    None
 Born 18C -> Alive       None
 
-Born 19C -> Died 19C    https://us.imdb.com/name/nm0786564/ (Anna Sewell 58)
-Born 19C -> Died 20C    https://us.imdb.com/name/nm0186440/ (Ward Crane 38)
-Born 19C -> Died 21C    https://us.imdb.com/name/nm0041807/ (Germaine Auger 112)
-Born 19C -> Alive       https://us.imdb.com/name/nm0008724/ (Dawlad Abiad 118)
+Born 19C -> Died 19C    https://www.imdb.com/name/nm0786564/ (Anna Sewell 58)
+Born 19C -> Died 20C    https://www.imdb.com/name/nm0186440/ (Ward Crane 38)
+Born 19C -> Died 21C    https://www.imdb.com/name/nm0041807/ (Germaine Auger 112)
+Born 19C -> Alive       https://www.imdb.com/name/nm0008724/ (Dawlad Abiad 118)
 
-Born 20C -> Died 20C    https://us.imdb.com/name/nm0001006/ (John Candy 43)
-Born 20C -> Died 21C    https://us.imdb.com/name/nm0670239/ (John Peel 65)
-Born 20C -> Alive       https://us.imdb.com/name/nm0088127/ (Alexis Bledel 36)
+Born 20C -> Died 20C    https://www.imdb.com/name/nm0001006/ (John Candy 43)
+Born 20C -> Died 21C    https://www.imdb.com/name/nm0670239/ (John Peel 65)
+Born 20C -> Alive       https://www.imdb.com/name/nm0088127/ (Alexis Bledel 36)
 
-Born 21C -> Died 21C    https://us.imdb.com/name/nm2548643/ (Tabea Block 1)
-Born 21C -> Alive       https://us.imdb.com/name/nm1468628/ (Ben Want 15)
+Born 21C -> Died 21C    https://www.imdb.com/name/nm2548643/ (Tabea Block 1)
+Born 21C -> Alive       https://www.imdb.com/name/nm1468628/ (Ben Want 15)
 
-Born 31 Dec 1969        https://us.imdb.com/name/nm1009503/ (Taylor McCall 48)
-Died 31 Dec 1969        https://us.imdb.com/name/nm0862239/ (Carol Thurston 49)
+Born 31 Dec 1969        https://www.imdb.com/name/nm1009503/ (Taylor McCall 48)
+Died 31 Dec 1969        https://www.imdb.com/name/nm0862239/ (Carol Thurston 49)
 Born  1 Jan 1970        https://www.imdb.com/name/nm0231191/ (Fiona Dolman 48)
 Died  1 Jan 1970        https://www.imdb.com/name/nm0902025/ (Eduard von Borsody 71)
 
 http://us.imdb.com/date/{month}-{day}
 http://us.imdb.com/search/name?birth_year={year}
 
-This was the method I used to find some of the people above, eeeeu! 
-(If you are crazy enough to run this, expect it to take ages. It takes 30min on a Intel Core Duo 2 CPU 6400 @ 2.13GHz.)
-(ftp://ftp.fu-berlin.de/pub/misc/movies/database)
-for c in 17 18 19 20; do
-        $( cat biographies.list.gz | gunzip -c | egrep "^NM: |^DB: |^DD: " | while read line; do echo -n "$line "; done | sed 's/NM: /\nNM: /g' | grep "$c[0-9][0-9]" | while read line; do if [ `echo $line | awk -F: '{print $3}' | grep "$c[0-9][0-9]" | wc -l | awk '{print $1}'` -eq 1 ]; then echo $line; fi; done > b.$c ) &
-        $( cat biographies.list.gz | gunzip -c | egrep "^NM: |^DB: |^DD: " | while read line; do echo -n "$line "; done | sed 's/NM: /\nNM: /g' | grep "$c[0-9][0-9]" | while read line; do if [ `echo $line | awk -F: '{print $4}' | grep "$c[0-9][0-9]" | wc -l | awk '{print $1}'` -eq 1 ]; then echo $line; fi; done > d.$c ) &
-done
-cat b.17 d.17 | sort | uniq -d
-{list of people born and died in 18C}
-$ wc -l b.17 d.17 b.18 d.18 b.19 d.19 b.20 d.20 
-     259 b.17
-      95 d.17
-   28647 b.18
-     663 d.18
-  320418 b.19
-   69663 d.19
-    4142 b.20
-   33387 d.20
-  457274 total
+$ curl https://datasets.imdbws.com/name.basics.tsv.gz | gunzip > name.basics.tsv
+$ for c in 17 18 19 20; do awk -F'\t' '{print $3 " " $1}' name.basics.tsv | grep ^$c | awk '{print $2}' > b.$c; awk -F'\t' '{print $4 " " $1}' name.basics.tsv | grep ^$c | awk '{print $2}' > d.$c; done
+$ cat b.17 d.17 | sort | uniq -d #list of people born and died in 18C
+$ wc -l b.17 d.17 b.18 d.18 b.19 d.19 b.20 d.20
+    353 b.17
+    137 d.17
+  37757 b.18
+    921 d.18
+ 471993 b.19
+  96672 d.19
+   4516 b.20
+  86201 d.20
+ 698550 total
 $
+
 */
 
 /*
-TODO: improve getTitleDates by grabbing month and day
 TODO: add ages to individual ages of actors to a film page, very hard,
         http req for each one, and then a xpath on the whole result
 TODO: add script updater support
 */
 
-/*
-calculates tropical zodiac sign
+/* calculates tropical zodiac sign see http://en.wikipedia.org/wiki/Signs_of_the_Zodiac
 input:  month and day
-returns: tropical zodiac sign as string, includes comma and label
-see http://en.wikipedia.org/wiki/Signs_of_the_Zodiac
-*/
+returns: tropical zodiac sign as string */
 function tropicalZodiac(month, day) {
-        var sign;
-
-        /* link the month and day to the sign */
         if     (month ==  3 && day >= 21 ||
-                month ==  4 && day <= 19) {sign = "Aries - ♈";}
+                month ==  4 && day <= 19) { return "Aries - ♈"; }
         else if(month ==  4 && day >= 20 ||
-                month ==  5 && day <= 20) {sign = "Taurus - ♉";}
+                month ==  5 && day <= 20) { return "Taurus - ♉"; }
         else if(month ==  5 && day >= 21 ||
-                month ==  6 && day <= 20) {sign = "Gemini - ♊";}
+                month ==  6 && day <= 20) { return "Gemini - ♊"; }
         else if(month ==  6 && day >= 21 ||
-                month ==  7 && day <= 22) {sign = "Cancer - ♋";}
+                month ==  7 && day <= 22) { return "Cancer - ♋"; }
         else if(month ==  7 && day >= 23 ||
-                month ==  8 && day <= 22) {sign = "Leo - ♌";}
+                month ==  8 && day <= 22) { return "Leo - ♌"; }
         else if(month ==  8 && day >= 23 ||
-                month ==  9 && day <= 22) {sign = "Virgo - ♍";}
+                month ==  9 && day <= 22) { return "Virgo - ♍"; }
         else if(month ==  9 && day >= 23 ||
-                month == 10 && day <= 22) {sign = "Libra - ♎";}
+                month == 10 && day <= 22) { return "Libra - ♎"; }
         else if(month == 10 && day >= 23 ||
-                month == 11 && day <= 21) {sign = "Scorpio - ♏";}
+                month == 11 && day <= 21) { return "Scorpio - ♏"; }
         else if(month == 11 && day >= 22 ||
-                month == 12 && day <= 21) {sign = "Sagittarius - ♐";}
+                month == 12 && day <= 21) { return "Sagittarius - ♐"; }
         else if(month == 12 && day >= 22 ||
-                month ==  1 && day <= 19) {sign = "Capricorn - ♑";}
+                month ==  1 && day <= 19) { return "Capricorn - ♑"; }
         else if(month ==  1 && day >= 20 ||
-                month ==  2 && day <= 18) {sign = "Aquarius - ♒";}
+                month ==  2 && day <= 18) { return "Aquarius - ♒"; }
         else if(month ==  2 && day >= 19 ||
-                month ==  3 && day <= 20) {sign = "Pisces - ♓";}
-        else {return "";} /* unknown and also catches odd dates */
-
-        /* return text with comma and label */
-        return ", Tropical Zodiac Sign: " + sign;
+                month ==  3 && day <= 20) { return "Pisces - ♓"; }
+        else { return ""; }
 }
 
-/*
-calculates chinese zodiac sign
+/* calculates chinese zodiac sign see http://en.wikipedia.org/wiki/Chinese_astrology
 input:  full year
-returns: chinese zodiac sign as string, includes comma and label
-see http://en.wikipedia.org/wiki/Chinese_astrology
-*/
+returns: chinese zodiac sign as string */
 function chineseZodiac(year) {
-        /* no idea how to work out signes before 20C */
+        /* no idea how to work out signs before 20C */
         if (year < 1900) { return ""; }
 
-        /* theres 12 signs that go round in a rotation */
+        /* there are 12 signs that go round in a rotation */
         /* find years since 1900, find modulus of that, get rid of the */
         /* sign(sic) and round it */
         var nsign = Math.round(Math.abs((year - 1900) % 12));
-        
-        var sign;
-        /* next link the two together*/
-        if      (nsign ==  0) { sign = "Rat (Metal)"; }
-        else if (nsign ==  1) { sign = "Ox (Metal)"; }
-        else if (nsign ==  2) { sign = "Tiger (Water)"; }
-        else if (nsign ==  3) { sign = "Rabbit/Cat (Water)"; }
-        else if (nsign ==  4) { sign = "Dragon (wood)"; }
-        else if (nsign ==  5) { sign = "Snake (Wood)"; }
-        else if (nsign ==  6) { sign = "Horse (Fire)"; }
-        else if (nsign ==  7) { sign = "Goat (Fire)"; }
-        else if (nsign ==  8) { sign = "Monkey (Earth)"; }
-        else if (nsign ==  9) { sign = "Rooster (Earth)"; }
-        else if (nsign == 10) { sign = "Dog (Metal)"; }
-        else if (nsign == 11) { sign = "Pig/Wild Boar (Metal)"; }
-        else {return "";}  /* unknown and also catches odd dates */
-        
-        /* return text with comma and label */
-        return ", Chinese Zodiac Sign: " + sign;
+
+        if      (nsign ==  0) { return "Rat (Metal)"; }
+        else if (nsign ==  1) { return "Ox (Metal)"; }
+        else if (nsign ==  2) { return "Tiger (Water)"; }
+        else if (nsign ==  3) { return "Rabbit/Cat (Water)"; }
+        else if (nsign ==  4) { return "Dragon (wood)"; }
+        else if (nsign ==  5) { return "Snake (Wood)"; }
+        else if (nsign ==  6) { return "Horse (Fire)"; }
+        else if (nsign ==  7) { return "Goat (Fire)"; }
+        else if (nsign ==  8) { return "Monkey (Earth)"; }
+        else if (nsign ==  9) { return "Rooster (Earth)"; }
+        else if (nsign == 10) { return "Dog (Metal)"; }
+        else if (nsign == 11) { return "Pig/Wild Boar (Metal)"; }
+        else { return ""; }
 }
 
-/*
-get dates from a name page
+/* get dates from a name page
 input: born and died called by ref, they are filled with dates from the page
-returns: whether they are dead or alive
-*/
+returns: whether they are dead or alive */
 function getNameDates(born, died) {
-				var alive = false;
-	
+        var alive = true;
+
         /* if new style */
         if (newStyle()) {
-                /* find the birth date */
-                var nodes = document.evaluate(
-                        "//time[contains(@itemprop,'birthDate')]",
-                        document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-                        null);
-                
+                var nodes = document.evaluate("//script[@type='application/ld+json']",
+                        document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+
                 if (nodes.snapshotLength == 1) {
-                        date = nodes.snapshotItem(0).getAttribute("datetime").split("-")
+                        jsond = JSON.parse(nodes.snapshotItem(0).firstChild.textContent);
+
+                        /* find the birth date */
+                        date = jsond.birthDate.split("-");
                         born.setFullYear(date[0]);
                         born.setMonth(date[1] - 1);
                         born.setDate(date[2]);
-                        alive = true
-                }
-                
-                /* find the death date */
-                var nodes = document.evaluate(
-                        "//time[contains(@itemprop,'deathDate')]",
-                        document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-                        null);
-                
-                if (nodes.snapshotLength == 1) {
-                        date=nodes.snapshotItem(0).getAttribute("datetime").split("-")
-                        died.setFullYear(date[0]);
-                        died.setMonth(date[1] - 1);
-                        died.setDate(date[2]);
-                        alive = false
+
+                        /* find the death date */
+                        date = jsond.deathDate;
+                        if(date) {
+                                date = date.split("-")
+                                died.setFullYear(date[0]);
+                                died.setMonth(date[1] - 1);
+                                died.setDate(date[2]);
+                                alive = false;
+                        }
+
                 }
         /* else old style */
-				} else {
+        } else {
                 /* find the birth date */
                 var nodes = document.evaluate(
                         "//div[contains(@class,'info-content')]/a[contains(@href,'birth')]",
@@ -278,7 +252,7 @@ function getNameDates(born, died) {
                         monthday = nodes.snapshotItem(0).getAttribute("href")
                         month = monthday.substring(6, 8)
                         day = monthday.substring(09,11)
-                        
+
                         year = nodes.snapshotItem(1).getAttribute("href")
                         year = year.substring(24, 28);
 
@@ -290,45 +264,34 @@ function getNameDates(born, died) {
         }
 
         //alert("Born: " + born + "\nDied: " + died + "\nAlive: " + alive);
-	return alive;
+        return alive;
 }
 
-/*
-get dates from a title page
+/* get dates from a title page
 input: none
-returns: year of title
-*/
+returns: date of title */
 function getTitleDates() {
-
-        var nodes = document.evaluate(
-                /* old style and new style */
-                "//div[contains(@id,'tn15title')]//a[contains(@href,'year')]|//div[@class='subtext']/a[@title='See more release dates']",
+        var nodes = document.evaluate("//h4[text()='Release Date:']",
                 document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        if (nodes.snapshotLength == 1) {
+                date = nodes.snapshotItem(0).nextSibling.textContent;
+        }
 
+        var nodes = document.evaluate("//a[text()='Release date']",
+                document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        if (nodes.snapshotLength == 1) {
+                date = nodes.snapshotItem(0).nextSibling.textContent;
+        }
 
-        if (nodes.snapshotLength != 1) {
-                return;
-        } 
+        titledate = new Date(Date.parse(date));
 
-        /* get the result */
-        yeartxt = nodes.snapshotItem(0).innerHTML;
-
-        /* get the first occurance of a year as it can contain year ranges */
-        yearindex = yeartxt.search("[1-2][0-9]{3}");
-        yeartxt = yeartxt.substring(yearindex, yearindex + 4);
-
-        /* return it */
-        year = new Date();
-        year.setFullYear(yeartxt);
-        //alert("Year: " + year)
-        return year;
+        //alert("Year: " + titledate.getFullYear())
+        return titledate;
 }
 
-/*
-add age of person to page
+/* add age of person to page
 input: alive status, and dates
-returns: none
-*/
+returns: none */
 function addAge(alive, born, died) {
         var justyear;
 
@@ -351,9 +314,9 @@ function addAge(alive, born, died) {
 
         var nodes = document.evaluate("//a[contains(@href,'/date')]",
                 document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-        
+
         /* only print the year if there aren't dates */
-        if ((alive == true && nodes.snapshotLength == 1) || 
+        if ((alive == true && nodes.snapshotLength == 1) ||
             (alive == false && nodes.snapshotLength == 2)) {
                 justyear = false;
         } else {
@@ -364,19 +327,11 @@ function addAge(alive, born, died) {
         var nodes = document.evaluate(
                 "//a[contains(@href,'birth_year')] | //a[contains(@href,'death_date')]",
                 document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-        
+
         /* only count months if we found month & day info */
         var container = document.createTextNode(
-                        " (Age: " + 
-                        years + 
-                        " year" +
-                        (years == 1 ? '' : 's') +
-                                (!justyear ? ", " + 
-                                months + 
-                                " month" +
-                                (months == 1 ? '' : 's')
-                                : '') +
-                ")");
+                " (Age: " + years + " year" + (years == 1 ? '' : 's') +
+                (!justyear ? ", " + months + " month" + (months == 1 ? '' : 's') : '') + ")");
 
         /* loop over all dates */
         if (alive == true) {
@@ -384,20 +339,17 @@ function addAge(alive, born, died) {
                 node.parentNode.insertBefore(container, node.nextSibling);
         } else {
                 node = nodes.snapshotItem(1);
-        
+
                 //only add death age on old layout, as new layout has it!
                 if (!newStyle()) {
-                        node.parentNode.insertBefore(container, 
-                                node.nextSibling);
+                        node.parentNode.insertBefore(container, node.nextSibling);
                 }
         }
 }
 
-/*
-add age of film and the age of the actor when they were in the film
-input: full year or birth
-returns: none
-*/
+/* add age of film and the age of the actor when they were in the film
+input: date
+returns: none */
 function addAges(born) {
         //find all the films, this in includes things like producer and writer
         var nodes = document.evaluate(
@@ -415,7 +367,7 @@ function addAges(born) {
                         if (yearindex < 0) {
                                 continue;
                         }
-                } else { 
+                } else {
                         yearindex = node.innerHTML.search(
                                 "[1-2][0-9]{3}[/I]{0,2}[)]")
                 }
@@ -447,7 +399,7 @@ function addAges(born) {
                                 (Math.abs(filmage) == 1 ? '' : 's') +
                                 " ago while " + age);
                 }
-                
+
                 //if(i == 4) { alert(agetxt); }
                 /* add in age text */
                 node.innerHTML = node.innerHTML.substring(0,yearindex)
@@ -455,21 +407,20 @@ function addAges(born) {
         }
 }
 
-/*
-adds signs to page
+/* adds signs to page
 input: date person is born
-returns: none
-*/
+returns: none */
 function addSigns(born) {
         /* find place to stick the info */
         var nodes = document.evaluate( "//a[contains(@href,'birth_year')]",
                 document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-        
+
         /* make a node with info in */
         var container = document.createTextNode(
-                tropicalZodiac(born.getMonth() + 1, born.getDate()) +
-                chineseZodiac(born.getFullYear())
+                ", Tropical Zodiac Sign: " + tropicalZodiac(born.getMonth() + 1, born.getDate()) +
+                ", Chinese Zodiac Sign: " + chineseZodiac(born.getFullYear())
                 );
+
         /* should be the first occurance of the latter */
         var node = nodes.snapshotItem(0);
 
@@ -479,19 +430,18 @@ function addSigns(born) {
         }
 }
 
-/*
-add the age of the film to the page
+/* add the age of the film to the page
 input: date of film
-returns: none
-*/
+returns: none */
 function addFilmAge(filmAge) {
         /* calc age */
         var age = new Date().getFullYear() - filmAge.getFullYear();
+
         /* only print if age is 1 or over */
         if (age >= 1) {
                 /* make a node with info in */
                 var container = document.createTextNode(", " +
-                        age + 
+                        age +
                         " year" + (age == 1 ? '' : 's') +
                         " ago");
         }
@@ -500,14 +450,14 @@ function addFilmAge(filmAge) {
         }
         if (age <= -1) {
                 var container = document.createTextNode(", in " +
-                        Math.abs(age) + 
+                        Math.abs(age) +
                         " year" + (Math.abs(age) == 1 ? '' : 's'));
         }
 
         /* find place to stick the info */
         var nodes = document.evaluate(
                 /* old style and new style */
-                "//div[contains(@id,'tn15title')]//a[contains(@href,'year')]|//div[@class='subtext']/a[@title='See more release dates']",
+                "//div[contains(@id,'tn15title')]//a[contains(@href,'year')]|//div[@class='subtext']/a[@title='See more release dates']|//div[contains(@class,'TitleBlock__TitleMetaDataContainer')]/ul/li",
                 document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
         /* create new span with formatting to match */
@@ -521,11 +471,9 @@ function addFilmAge(filmAge) {
         node.parentNode.insertBefore(span, node.nextSibling);
 }
 
-/*
-find out if we are using the newstyle on not, works on name and title pages
+/* find out if we are using the newstyle on not, works on name and title pages
 input: none
-returns: true if using the new style
-*/
+returns: true if using the new style */
 function newStyle() {
         var nodes = document.evaluate( "//div[@id='tn15content']", document,
                 null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
